@@ -1,16 +1,32 @@
-# flutter_shopping_list
+# Flutter shopping list
 
-A new Flutter project.
+This is a simple flutter app to show/add/edit/delete shopping lists. This app is integrated with firebase.
 
-## Getting Started
+For security reasons, .env is used to save the firebase url. Create a .env file at the project root level and set FIREBASE_URL value in that. For example, for this project the content of .env looks like this:
 
-This project is a starting point for a Flutter application.
+```
+FIREBASE_URL=some-dummy-url-default-rtdb.firebaseio.com
+```
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Screenshots
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+#### Shopping items
+<p align="center">
+<img src="./assets/screenshots/1.png" height="400">
+<br/></p>
+
+#### Add new item
+<p align="center">
+<img src="./assets/screenshots/2.png" height="400">
+<br/></p>
+
+#### Add new item with open dropdown
+<p align="center">
+<img src="./assets/screenshots/3.png" height="400">
+<br/></p>
+
+#### Edit an existing item
+<p align="center">
+<img src="./assets/screenshots/4.png" height="400">
+<br/></p>

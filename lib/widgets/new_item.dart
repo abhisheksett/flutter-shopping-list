@@ -1,13 +1,15 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_shopping_list/data/categories.dart';
 import 'package:flutter_shopping_list/models/category.dart';
 import 'package:flutter_shopping_list/models/grocery_item.dart';
 import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
-  const NewItem({super.key});
+  final GroceryItem? item;
+  const NewItem({super.key, this.item});
 
   @override
   State<NewItem> createState() => _NewItemState();
@@ -16,29 +18,68 @@ class NewItem extends StatefulWidget {
 class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
 
+  var _id = '';
   var _enteredName = '';
-  var _enteredQuantity = 1;
+  var _enteredQuantity = 0;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    if (item != null) {
+      // setState(() {
+      _id = item.id;
+      _enteredName = item.name;
+      _enteredQuantity = item.quantity;
+      _selectedCategory = item.category;
+      // });
+    }
+  }
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final url = Uri.https(
-          'flutter-shopping-list-sett-default-rtdb.firebaseio.com',
-          'shopping-list.json');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(
-          {
-            'name': _enteredName,
-            'quantity': _enteredQuantity,
-            'category': _selectedCategory.title,
-          },
-        ),
-      );
+      setState(() {
+        _isSending = true;
+      });
 
-      final responseData = json.decode(response.body);
+      late final responseData;
+      // if id exists, its put. Else post
+      if (_id != '') {
+        final url =
+            Uri.https(dotenv.env['FIREBASE_URL']!, 'shopping-list/$_id.json');
+        final response = await http.put(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(
+            {
+              'name': _enteredName,
+              'quantity': _enteredQuantity,
+              'category': _selectedCategory.title,
+            },
+          ),
+        );
+        print(response.body);
+        responseData = json.decode(response.body);
+      } else {
+        final url =
+            Uri.https(dotenv.env['FIREBASE_URL']!, 'shopping-list.json');
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(
+            {
+              'name': _enteredName,
+              'quantity': _enteredQuantity,
+              'category': _selectedCategory.title,
+            },
+          ),
+        );
+        print(response.body);
+        responseData = json.decode(response.body);
+      }
 
       if (!context.mounted) {
         // if widget is not part of the screen anymore, then return
@@ -46,7 +87,7 @@ class _NewItemState extends State<NewItem> {
       }
       Navigator.of(context).pop(
         GroceryItem(
-          id: responseData['name'],
+          id: _id != '' ? _id : responseData['name'],
           name: _enteredName,
           quantity: _enteredQuantity,
           category: _selectedCategory,
@@ -59,7 +100,8 @@ class _NewItemState extends State<NewItem> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add new item'),
+        title:
+            _id != '' ? const Text('Update item') : const Text('Add new item'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(12),
@@ -69,6 +111,7 @@ class _NewItemState extends State<NewItem> {
             children: [
               TextFormField(
                 maxLength: 50,
+                initialValue: _enteredName != '' ? _enteredName : '',
                 decoration: const InputDecoration(
                   label: Text('Name'),
                 ),
@@ -94,7 +137,9 @@ class _NewItemState extends State<NewItem> {
                         label: Text('Quantity'),
                       ),
                       keyboardType: TextInputType.number,
-                      initialValue: '1',
+                      initialValue: _enteredQuantity != 0
+                          ? _enteredQuantity.toString()
+                          : '1',
                       validator: (value) {
                         if (value == null ||
                             value.isEmpty ||
@@ -144,12 +189,24 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                      onPressed: () {
-                        _formKey.currentState!.reset();
-                      },
+                      onPressed: _isSending
+                          ? null
+                          : () {
+                              _formKey.currentState!.reset();
+                            },
                       child: const Text('Reset')),
                   ElevatedButton(
-                      onPressed: _saveItem, child: const Text('Add Item'))
+                    onPressed: _isSending ? null : _saveItem,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(),
+                          )
+                        : _id != ''
+                            ? const Text('Update Item')
+                            : const Text('Add Item'),
+                  )
                 ],
               )
             ],
